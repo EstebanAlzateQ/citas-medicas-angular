@@ -1,1 +1,62 @@
-<p>citas-list works!</p>
+
+<app-header></app-header>
+<div class="container mt-5 mb-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>Mis Citas Agendadas</h3>
+    <!-- Contenedor para los botones de acción -->
+    <div>
+      <button class="btn btn-success me-2" (click)="descargarExcel()" title="Descargar agenda en formato Excel">
+        <i class="bi bi-file-earmark-excel-fill me-2"></i>Exportar a Excel
+      </button>
+      <a routerLink="/citas/nueva" class="btn btn-primary" title="Agendar una nueva cita médica">
+        <i class="bi bi-plus-circle-fill me-2"></i>Agendar Nueva Cita
+      </a>
+    </div>
+  </div>
+
+  <!-- Bloque condicional para mostrar la tabla o un mensaje -->
+  @if (citas.length === 0) {
+    <div class="alert alert-info">
+      Aún no tienes ninguna cita agendada. ¡Anímate a agendar una!
+    </div>
+  } @else {
+    <div class="table-responsive">
+      <table class="table table-striped table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Médico</th>
+            <th>Especialidad</th>
+            <th>Fecha y Hora</th>
+            <th>Motivo</th>
+            <th>Estado</th>
+            <th class="text-center">Acciones</th> 
+          </tr>
+        </thead>
+        <tbody>
+          @for (cita of citas; track cita.id) {
+            <tr>
+              <td>{{ cita.medico?.nombre_completo ?? 'No disponible' }}</td>
+              <td>{{ cita.medico?.especialidad ?? 'No disponible' }}</td>
+              <td>{{ cita.fecha_hora | date:'dd/MM/yyyy h:mm a' }}</td>
+              <td>{{ cita.motivo_consulta }}</td>
+              <td><span class="badge bg-success rounded-pill">{{ cita.estado }}</span></td>
+              <!-- Celda de acciones con botones -->
+              <td class="text-center">
+                <div class="btn-group" role="group">
+                  <a [routerLink]="['/citas/editar', cita.id]" class="btn btn-secondary btn-sm" title="Editar esta cita">Editar</a>
+                  <button class="btn btn-danger btn-sm" (click)="cancelarCita(cita.id)" title="Cancelar esta cita">
+                     Cancelar
+                  </button>
+                  <button class="btn btn-info btn-sm" (click)="descargarPdf(cita.id)" title="Descargar recordatorio en PDF">
+                     <i class="bi bi-file-earmark-pdf-fill"></i> PDF
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } <!-- Fin del bloque @else -->
+</div>
+<app-footer></app-footer>

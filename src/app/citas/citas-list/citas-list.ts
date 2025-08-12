@@ -9,58 +9,10 @@ import { Footer } from '../../layout/footer/footer';
   selector: 'app-citas-list',
   standalone: true,
   imports: [CommonModule, RouterLink, Header, Footer],
-  template: `
-    <app-header></app-header>
-    <div class="container mt-5">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>Mis Citas Agendadas</h3>
-        <a routerLink="/citas/nueva" class="btn btn-primary">
-          <i class="bi bi-plus-circle-fill me-2"></i>Agendar Nueva Cita
-        </a>
-      </div>
-
-      @if (citas.length === 0) {
-        <div class="alert alert-info">
-          Aún no tienes ninguna cita agendada.
-        </div>
-      } @else {
-        <div class="table-responsive">
-          <table class="table table-striped table-hover align-middle">
-            <thead class="table-light">
-              <tr>
-                <th>Médico</th>
-                <th>Especialidad</th>
-                <th>Fecha y Hora</th>
-                <th>Motivo</th>
-                <th>Estado</th>
-                <th>Acciones</th> 
-              </tr>
-            </thead>
-            <tbody>
-              @for (cita of citas; track cita.id) {
-                <tr>
-                  <td>{{ cita.medico.nombre_completo }}</td>
-                  <td>{{ cita.medico.especialidad }}</td>
-                  <td>{{ cita.fecha_hora | date:'dd/MM/yyyy h:mm a' }}</td>
-                  <td>{{ cita.motivo_consulta }}</td>
-                  <td><span class="badge bg-success">{{ cita.estado }}</span></td>
-                  <td>
-                    <a [routerLink]="['/citas/editar', cita.id]" class="btn btn-secondary btn-sm me-2">Editar</a>
-                    <button class="btn btn-danger btn-sm" (click)="cancelarCita(cita.id)">
-                       Cancelar
-                    </button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </div>
-    <app-footer></app-footer>
-  `
+  templateUrl: './citas-list.html',
+  styleUrls: ['./citas-list.scss']
 })
-export class CitasList implements OnInit {
+export class CitasList implements OnInit { // <-- Nombre corregido
   
   citas: any[] = [];
 
@@ -77,7 +29,6 @@ export class CitasList implements OnInit {
     });
   }
 
-  // Función para cancelar la cita
   cancelarCita(id: number): void {
     if (confirm('¿Estás seguro de que quieres cancelar esta cita?')) {
       this.citaService.deleteCita(id).subscribe({
@@ -91,5 +42,55 @@ export class CitasList implements OnInit {
         }
       });
     }
+  }
+
+  private saveAs(blob: Blob, filename: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    document.body.appendChild(a);
+    a.style.display = 'none';
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
+  }
+
+  descargarExcel(): void {
+    this.citaService.downloadExcel().subscribe({
+      next: (blob) => {
+        this.saveAs(blob, 'mi-agenda-medica.xlsx');
+      },
+      error: (httpErrorResponse) => {
+        console.error('Error al descargar el archivo Excel', httpErrorResponse);
+        if (httpErrorResponse.error instanceof Blob && httpErrorResponse.error.type === "application/json") {
+          const reader = new FileReader();
+          reader.onload = (e: any) => {
+            try {
+              const errorResponse = JSON.parse(e.target.result);
+              const errorMessage = `Error del servidor: ${errorResponse.message}\n\nArchivo: ${errorResponse.file}\n\nLínea: ${errorResponse.line}`;
+              alert(errorMessage);
+            } catch (jsonError) {
+              alert('No se pudo leer el detalle del error del servidor, pero ocurrió un fallo.');
+            }
+          };
+          reader.readAsText(httpErrorResponse.error);
+        } else {
+          alert('No se pudo descargar el archivo Excel. Por favor, inténtalo de nuevo.');
+        }
+      }
+    });
+  }
+
+  descargarPdf(id: number): void {
+    this.citaService.downloadPdf(id).subscribe({
+      next: (blob) => {
+        this.saveAs(blob, `recordatorio-cita-${id}.pdf`);
+      },
+      error: (err) => {
+        console.error('Error al descargar el archivo PDF', err);
+        alert('No se pudo descargar el archivo PDF. Por favor, inténtalo de nuevo.');
+      }
+    });
   }
 }
